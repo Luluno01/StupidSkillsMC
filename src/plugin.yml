@@ -1,0 +1,11 @@
+name: StupidSkills
+main: vip.untitled.stupidskills.StupidSkills
+version: '1.0'
+author: Untitled
+commands:
+  skill:
+    description: Make a player learn some skill
+    usage: /skill <skill-name> <level> [player]
+  list-skill:
+    description: List all skills
+    usage: /list-skill
