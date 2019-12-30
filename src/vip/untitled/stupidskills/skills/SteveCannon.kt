@@ -2,12 +2,11 @@ package vip.untitled.stupidskills.skills
 
 import org.bukkit.ChatColor
 import org.bukkit.NamespacedKey
+import org.bukkit.entity.Entity
 import org.bukkit.entity.Mob
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
-import org.bukkit.event.HandlerList
 import org.bukkit.event.Listener
-import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerMoveEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.metadata.MetadataValueAdapter
@@ -19,19 +18,12 @@ import vip.untitled.stupidskills.effects.ExplosionEffect
 import vip.untitled.stupidskills.effects.ShootEffect
 import java.util.*
 
-class SteveCannonSkill private constructor(context: JavaPlugin, enchantment: SkillEnchantment) :
+class SteveCannon constructor(context: JavaPlugin, enchantment: SkillEnchantment) :
     Skill(context, enchantment), Listener {
-    companion object : SkillCompanionObject {
-        private var instance: SteveCannonSkill? = null
-        override fun getInstance(context: JavaPlugin, enchantment: SkillEnchantment): SteveCannonSkill {
-            if (instance == null) {
-                instance = SteveCannonSkill(context, enchantment)
-            }
-            return instance!!
-        }
-    }
+    companion object : SkillCompanionObject<SteveCannon>(SteveCannon::class)
 
     override val name = "Steve Cannon"
+    override val internalName = "SteveCannon"
     override val description = "Fire yourself like a cannonball"
     override val usage = "Left/Right click to fire yourself like a cannonball"
     override val key = NamespacedKey(context, "steve-cannon-skill")
@@ -44,11 +36,6 @@ class SteveCannonSkill private constructor(context: JavaPlugin, enchantment: Ski
         override fun invalidate() {
             return
         }
-    }
-
-    init {
-        skills["SteveCannon"] = this
-        context.server.pluginManager.registerEvents(this, context)
     }
 
     class CastingSkillLevel(plugin: JavaPlugin, private val level: Int) : MetadataValueAdapter(plugin) {
@@ -65,29 +52,21 @@ class SteveCannonSkill private constructor(context: JavaPlugin, enchantment: Ski
         return CastingSkillLevel(context, level)
     }
 
-    @EventHandler
-    fun onPlayerUse(event: PlayerInteractEvent) {
-        val level = match(event.item, event.player)
-        if (level > 0) {
-            event.isCancelled = true
-            cast(event.player, level)
-        }
-    }
-
     /**
-     * Make a player cast this skill
+     * Make an entity cast this skill
      */
-    fun cast(caster: Player, level: Int) {
-        if (isCaster(caster)) return
-        caster.sendActionBar(ChatColor.GOLD.toString() + "Steve Cannon!")
+    override fun cast(caster: Entity, level: Int): Boolean {
+        if (isCaster(caster)) return true
+        if (caster is Player) caster.sendActionBar(ChatColor.GOLD.toString() + "Steve Cannon!")
         ShootEffect().apply(caster, context, level)
         markCaster(caster, level)
+        return true
     }
 
     /**
      * Mark a player as a caster
      */
-    private fun markCaster(caster: Player, level: Int) {
+    private fun markCaster(caster: Entity, level: Int) {
         caster.setMetadata(key.toString(), getPlayerMetaOfSkill(level))
         // Mark effective after 5 ticks to avoid immediate effect
         context.server.scheduler.runTaskLater(context, Runnable { markEffective(caster) }, 5)
@@ -100,21 +79,21 @@ class SteveCannonSkill private constructor(context: JavaPlugin, enchantment: Ski
         }, 6)
     }
 
-    private fun markEffective(caster: Player) {
+    private fun markEffective(caster: Entity) {
         if (isCaster(caster)) {
             caster.setMetadata("$key-effective", effectivePlayerMeta)
         }
     }
 
-    private fun unmarkCaster(caster: Player) {
+    private fun unmarkCaster(caster: Entity) {
         caster.removeMetadata(key.toString(), context)
     }
 
-    private fun unmarkEffective(caster: Player) {
+    private fun unmarkEffective(caster: Entity) {
         caster.removeMetadata("$key-effective", context)
     }
 
-    private fun isCaster(caster: Player): Boolean {
+    private fun isCaster(caster: Entity): Boolean {
         val metas = caster.getMetadata(key.toString())
         for (meta in metas) {
             if (meta is CastingSkillLevel && meta.value() > 0) {
@@ -124,7 +103,7 @@ class SteveCannonSkill private constructor(context: JavaPlugin, enchantment: Ski
         return false
     }
 
-    private fun isEffective(caster: Player): Boolean {
+    private fun isEffective(caster: Entity): Boolean {
         val metas = caster.getMetadata("$key-effective")
         for (meta in metas) {
             if (meta.value() == true) {
@@ -165,9 +144,9 @@ class SteveCannonSkill private constructor(context: JavaPlugin, enchantment: Ski
     }
 
     /**
-     * Apply the explosion and stun effect around the player
+     * Apply the explosion and stun effect around the entity
      */
-    private fun applyEffect(player: Player) {
+    private fun applyEffect(player: Entity) {
         unmarkCaster(player)
         unmarkEffective(player)
         var level = 1
@@ -179,10 +158,5 @@ class SteveCannonSkill private constructor(context: JavaPlugin, enchantment: Ski
         }
         AreaDamageEffect().apply(player, context, level)
         ExplosionEffect().apply(player, context, level)
-    }
-
-    override fun onDisable() {
-        skills.remove("SteveCannon")
-        HandlerList.unregisterAll(this)
     }
 }

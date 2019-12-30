@@ -7,13 +7,11 @@ import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
-import vip.untitled.stupidskills.skills.Skill
-import vip.untitled.stupidskills.skills.SteveCannonSkill
-import vip.untitled.stupidskills.skills.WizardSkill
+import vip.untitled.stupidskills.skills.*
 import java.lang.Integer.parseInt
 
 class StupidSkills : JavaPlugin() {
-    private val skillClasses = arrayOf(WizardSkill, SteveCannonSkill)
+    private val skillClasses = arrayOf(WizardSkill, SteveCannon, HomingMissile, JavelinMissile)
     private val skillEnchantmentKey = NamespacedKey(this, "skill")
     private val skillEnchantment = SkillEnchantment(skillEnchantmentKey)
 
@@ -21,9 +19,11 @@ class StupidSkills : JavaPlugin() {
         super.onEnable()
         skillEnchantment.registerSelf()
         for (skillClass in skillClasses) {
-            skillClass.getInstance(this, skillEnchantment)
+            val skill = skillClass.getInstance(this, skillEnchantment).onEnable()
+            logger.info("${ChatColor.GREEN}Registering ${ChatColor.GOLD}${skill.name}: ${ChatColor.GREEN}${skill.description}")
         }
         logger.info("StupidSkills enabled")
+        logger.info(ChatColor.GOLD.toString() + "${skillClasses.size} skill(s) enabled")
     }
 
     override fun onDisable() {

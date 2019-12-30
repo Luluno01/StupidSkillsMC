@@ -2,7 +2,12 @@ package vip.untitled.stupidskills.skills
 
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
+import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
+import org.bukkit.event.EventHandler
+import org.bukkit.event.HandlerList
+import org.bukkit.event.Listener
+import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.BookMeta
 import org.bukkit.plugin.java.JavaPlugin
@@ -11,8 +16,9 @@ import vip.untitled.stupidskills.SkillEnchantment
 /**
  * Base class for all skills
  */
-abstract class Skill protected constructor(val context: JavaPlugin, val enchantment: SkillEnchantment) {
-    companion object : SkillCompanionObject {
+@Suppress("LeakingThis")
+abstract class Skill constructor(val context: JavaPlugin, val enchantment: SkillEnchantment) : Listener {
+    companion object : SkillCompanionObject<Skill>(Skill::class) {
         override fun getInstance(context: JavaPlugin, enchantment: SkillEnchantment): Skill {
             throw Error("Cannot instantiate base class of skill")
         }
@@ -28,6 +34,10 @@ abstract class Skill protected constructor(val context: JavaPlugin, val enchantm
      */
     abstract val name: String
     /**
+     * Internal name of the skill
+     */
+    abstract val internalName: String
+    /**
      * Description of the skill
      */
     abstract val description: String
@@ -40,10 +50,23 @@ abstract class Skill protected constructor(val context: JavaPlugin, val enchantm
      */
     abstract val key: NamespacedKey
 
+    open fun onEnable(): Skill {
+        if (skills.containsKey(internalName)) {
+            throw RuntimeException("Skill $internalName already registered")
+        }
+        context.server.pluginManager.registerEvents(this, context)
+        skills[internalName] = this
+        return this
+    }
+
     /**
      * On skill disabled, unregister event listeners, etc.
      */
-    abstract fun onDisable()
+    open fun onDisable(): Skill {
+        HandlerList.unregisterAll(this)
+        skills.remove(internalName)
+        return this
+    }
 
     /**
      * Get skill item
@@ -67,6 +90,26 @@ abstract class Skill protected constructor(val context: JavaPlugin, val enchantm
     }
 
     /**
+     * Make an entity cast a skill, return true if should cancel PlayerInteractEvent
+     */
+    open fun cast(caster: Entity, level: Int): Boolean {
+        return true
+    }
+
+    /**
+     * Call `cast` when skill book is "used", override this method if you want a different behavior
+     */
+    @EventHandler
+    open fun onPlayerUse(event: PlayerInteractEvent) {
+        val level = match(event.item, event.player)
+        if (level > 0) {
+            if (cast(event.player, level)) {
+                event.isCancelled = true
+            }
+        }
+    }
+
+    /**
      * Determine if the item and the player are matched, return the skill level
      */
     open fun match(item: ItemStack?, owner: Player): Int {
@@ -87,7 +130,7 @@ abstract class Skill protected constructor(val context: JavaPlugin, val enchantm
                         return level
                     }
                 }
-                return level
+                return 0
             }
         }
         return 0
