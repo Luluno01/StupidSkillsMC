@@ -7,6 +7,7 @@ import org.bukkit.entity.Mob
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
+import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerMoveEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.metadata.MetadataValueAdapter
@@ -55,7 +56,7 @@ class SteveCannon constructor(context: JavaPlugin, enchantment: SkillEnchantment
     /**
      * Make an entity cast this skill
      */
-    override fun cast(caster: Entity, level: Int): Boolean {
+    override fun cast(caster: Entity, level: Int, event: PlayerInteractEvent?): Boolean {
         if (isCaster(caster)) return true
         if (caster is Player) caster.sendActionBar(ChatColor.GOLD.toString() + "Steve Cannon!")
         ShootEffect().apply(caster, context, level)
@@ -96,7 +97,7 @@ class SteveCannon constructor(context: JavaPlugin, enchantment: SkillEnchantment
     private fun isCaster(caster: Entity): Boolean {
         val metas = caster.getMetadata(key.toString())
         for (meta in metas) {
-            if (meta is CastingSkillLevel && meta.value() > 0) {
+            if (meta is CastingSkillLevel && meta.owningPlugin == context && meta.value() > 0) {
                 return true
             }
         }
@@ -106,7 +107,7 @@ class SteveCannon constructor(context: JavaPlugin, enchantment: SkillEnchantment
     private fun isEffective(caster: Entity): Boolean {
         val metas = caster.getMetadata("$key-effective")
         for (meta in metas) {
-            if (meta.value() == true) {
+            if (meta.owningPlugin == context && meta.value() == true) {
                 return true
             }
         }

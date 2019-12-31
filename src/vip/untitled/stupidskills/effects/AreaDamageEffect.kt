@@ -4,22 +4,34 @@ import org.bukkit.entity.Damageable
 import org.bukkit.entity.Entity
 import org.bukkit.entity.Mob
 import org.bukkit.entity.Player
-import org.bukkit.plugin.Plugin
+import org.bukkit.plugin.java.JavaPlugin
 
-open class AreaDamageEffect : Effect {
+open class AreaDamageEffect : EffectAdapter(), Effect {
+    companion object {
+        const val minDamage = 1.0
+        const val maxDamage = 10.0
+        const val maxLevel = 10
+        const val extraDamagePerLevel = (maxDamage - minDamage) / (maxLevel - 1)
+        const val minRange = 2.0
+        const val maxRange = 5.0
+        const val extraRangePerLevel = (maxRange - minRange) / (maxLevel - 1)
+    }
+
+    override val maxLevel = Companion.maxLevel
+
     /**
      * Apply area damage effect around `entity`, make `entity` the cause of damage
      */
-    override fun apply(entity: Entity, context: Plugin, level: Int) {
+    override fun apply(entity: Entity, context: JavaPlugin, level: Int) {
         apply(entity, entity, level)
     }
 
     open fun getDamage(level: Int): Double {
-        return 6.0 + 1.25 * level
+        return getLeveledValue(minDamage, extraDamagePerLevel, sanitizeLevel(level))
     }
 
     open fun getRange(level: Int): Double {
-        return 2.0 + level * 0.25
+        return getLeveledValue(minRange, extraRangePerLevel, sanitizeLevel(level))
     }
 
     /**

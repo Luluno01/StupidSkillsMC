@@ -39,6 +39,10 @@ open class JavelinMissile constructor(context: JavaPlugin, enchantment: SkillEnc
         }
     }
 
+    override fun getHomingDelay(level: Int): Long {
+        return 5
+    }
+
     override fun onNewMissile(missile: Arrow, homingMissileTask: HomingMissileTask) {
         TargetChangingTask(context, homingMissileTask)
     }

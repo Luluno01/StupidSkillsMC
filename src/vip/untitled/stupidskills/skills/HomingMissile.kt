@@ -10,6 +10,9 @@ import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.entity.ProjectileHitEvent
+import org.bukkit.event.player.PlayerInteractEvent
+import org.bukkit.inventory.EquipmentSlot
+import org.bukkit.inventory.ItemStack
 import org.bukkit.metadata.MetadataValueAdapter
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitRunnable
@@ -18,6 +21,9 @@ import vip.untitled.stupidskills.SkillEnchantment
 import vip.untitled.stupidskills.effects.AreaDamageEffect
 import vip.untitled.stupidskills.effects.ExplosionEffect
 import vip.untitled.stupidskills.effects.FullAreaDamageEffect
+import vip.untitled.stupidskills.helpers.LookingAt
+import vip.untitled.stupidskills.helpers.SkillCooldown
+import vip.untitled.stupidskills.helpers.TickCounter
 import java.util.*
 
 open class HomingMissile constructor(context: JavaPlugin, enchantment: SkillEnchantment) :
@@ -31,6 +37,16 @@ open class HomingMissile constructor(context: JavaPlugin, enchantment: SkillEnch
     override val key = NamespacedKey(context, "homing-missile-skill")
 
     protected val homingTasks = hashMapOf<UUID, HomingMissileTask>()
+
+    protected open class Cooldown(override var tickCounter: TickCounter) : SkillCooldown.Companion.Cooldownable() {
+        override fun getCooldown(level: Int): Int {
+            return 20 * (7 - (level * 0.5).toInt())
+        }
+    }
+
+    protected open fun getHomingDelay(level: Int): Long {
+        return 0
+    }
 
     protected open fun getHomingMeta(level: Int): MetadataValueAdapter {
         return object : MetadataValueAdapter(context) {
@@ -51,15 +67,17 @@ open class HomingMissile constructor(context: JavaPlugin, enchantment: SkillEnch
         metadataValue: MetadataValueAdapter,
         val arrow: Arrow,
         val torque: Float,
-        val maxVelocity: Double
+        val maxVelocity: Double,
+        delay: Long
     ) : BukkitRunnable() {
         private val level = metadataValue.value() as Int
         var targetOverride: Vector? = null
+        var shallPlayExplosionEffect = true
 
         init {
             arrow.setMetadata(skill.key.toString(), metadataValue)
             skill.homingTasks[arrow.uniqueId] = this
-            runTaskTimer(plugin, 0L, 1L)
+            runTaskTimer(plugin, delay, 1L)
         }
 
         abstract fun getToTargetVector(): Vector
@@ -71,12 +89,21 @@ open class HomingMissile constructor(context: JavaPlugin, enchantment: SkillEnch
                 cancel()
                 return
             }
+            if (shallPlayExplosionEffect) {
+                ExplosionEffect().apply(arrow, plugin, 0)
+                shallPlayExplosionEffect = false
+            }
             if (isTargetAlive()) {
                 val toTarget = if (targetOverride == null) getToTargetVector()
                 else targetOverride!!.clone().subtract(arrow.location.toVector())
-                if (toTarget.length() < 0.5) {
+                if (toTarget.length() < 1) {  // Avoid shaking
                     // Tango hit
-                    skill.applyEffect(arrow, null, level)
+                    val shooter = if (arrow.shooter is LivingEntity) {
+                        arrow.shooter as LivingEntity
+                    } else {
+                        null
+                    }
+                    skill.applyEffect(arrow, shooter, level)
                     cancel()
                     return
                 }
@@ -103,8 +130,9 @@ open class HomingMissile constructor(context: JavaPlugin, enchantment: SkillEnch
         arrow: Arrow,
         protected val target: LivingEntity,
         torque: Float,
-        maxVelocity: Double
-    ) : HomingMissileTask(plugin, skill, metadataValue, arrow, torque, maxVelocity) {
+        maxVelocity: Double,
+        delay: Long
+    ) : HomingMissileTask(plugin, skill, metadataValue, arrow, torque, maxVelocity, delay) {
         override fun getToTargetVector(): Vector {
             return target.location.toVector().subtract(arrow.location.toVector())
         }
@@ -121,8 +149,9 @@ open class HomingMissile constructor(context: JavaPlugin, enchantment: SkillEnch
         arrow: Arrow,
         target: Block,
         torque: Float,
-        maxVelocity: Double
-    ) : HomingMissileTask(plugin, skill, metadataValue, arrow, torque, maxVelocity) {
+        maxVelocity: Double,
+        delay: Long
+    ) : HomingMissileTask(plugin, skill, metadataValue, arrow, torque, maxVelocity, delay) {
         protected var targetLocation = target.location
         protected var targetWorld = target.world
         override fun getToTargetVector(): Vector {
@@ -138,38 +167,15 @@ open class HomingMissile constructor(context: JavaPlugin, enchantment: SkillEnch
         return
     }
 
-    override fun cast(caster: Entity, level: Int): Boolean {
+    override fun cast(caster: Entity, level: Int, event: PlayerInteractEvent?): Boolean {
         if (caster is LivingEntity) {
-            val targetBlock = caster.getTargetBlock(64)
-            var targetEntity = caster.getTargetEntity(64)
-            if (targetEntity !is LivingEntity) targetEntity =
-                null  // We don't want to fire a missile at a flying snowball
-            if (targetBlock == null) {
-                return if (targetEntity == null) {
-                    // null, null
-                    true
-                } else {
-                    // null, !null
-                    cast(caster, targetEntity as LivingEntity, level)
-                    true
-                }
-            } else {
-                return if (targetEntity == null) {
-                    // !null, null
-                    cast(caster, targetBlock, level)
-                    true
-                } else {
-                    // !null, !null
-                    val casterLocation = caster.location
-                    val blockLocation = targetBlock.location
-                    val entityLocation = targetEntity.location
-                    if (casterLocation.distance(blockLocation) < casterLocation.distance(entityLocation)) {
-                        cast(caster, targetBlock, level)
-                        true
-                    } else {
-                        cast(caster, targetEntity as LivingEntity, level)
-                        true
-                    }
+            if (event != null && event.hand != EquipmentSlot.HAND) return true  // Still cancel the event to avoid stupid bugs
+            val target = LookingAt.what(caster, 64, true)
+            if (target != null) {
+                if (target is Block) {
+                    cast(caster, target, level, event?.item)
+                } else if (target is LivingEntity) {
+                    cast(caster, target, level, event?.item)
                 }
             }
         }
@@ -190,8 +196,17 @@ open class HomingMissile constructor(context: JavaPlugin, enchantment: SkillEnch
         return 1 + 0.25 * level
     }
 
-    open fun cast(caster: LivingEntity, target: Block, level: Int) {
+    protected open fun checkCooldown(caster: LivingEntity, level: Int, item: ItemStack? = null): Boolean {
+        return Cooldown((context as TickCounter.Companion.TickCounterOwner).tickCounter).checkCooldown(
+            caster,
+            level,
+            item
+        )
+    }
+
+    open fun cast(caster: LivingEntity, target: Block, level: Int, item: ItemStack? = null) {
         if (target.isEmpty) return
+        if (checkCooldown(caster, level, item)) return
         sendMessage(caster)
         val arrow = caster.launchProjectile(Arrow::class.java, caster.location.direction)
         val task = BlockHomingMissileTask(
@@ -201,12 +216,14 @@ open class HomingMissile constructor(context: JavaPlugin, enchantment: SkillEnch
             arrow,
             target,
             getTorque(level),
-            getMaxVelocity(level)
+            getMaxVelocity(level),
+            getHomingDelay(level)
         )
         onNewMissile(arrow, task)
     }
 
-    open fun cast(caster: LivingEntity, target: LivingEntity, level: Int) {
+    open fun cast(caster: LivingEntity, target: LivingEntity, level: Int, item: ItemStack? = null) {
+        if (checkCooldown(caster, level, item)) return
         sendMessage(caster)
         val arrow = caster.launchProjectile(Arrow::class.java, caster.location.direction)
         val task = EntityHomingMissileTask(
@@ -216,7 +233,8 @@ open class HomingMissile constructor(context: JavaPlugin, enchantment: SkillEnch
             arrow,
             target,
             getTorque(level),
-            getMaxVelocity(level)
+            getMaxVelocity(level),
+            getHomingDelay(level)
         )
         onNewMissile(arrow, task)
     }
@@ -226,24 +244,26 @@ open class HomingMissile constructor(context: JavaPlugin, enchantment: SkillEnch
         val arrow = event.entity
         if (arrow is Arrow) {
             for (meta in arrow.getMetadata(key.toString())) {
-                val level = meta.value()
-                if (level is Int && level > 0) {
-                    // This is a homing missile
-                    arrow.remove()
-                    // Get damage source
-                    val shooter: LivingEntity? = if (arrow.shooter is LivingEntity) {
-                        arrow.shooter as LivingEntity
-                    } else {
-                        null
-                    }
-                    // Get target
-                    val hitBlock = event.hitBlock
-                    val hitEntity = event.hitEntity
-                    // Apply effect
-                    if (hitBlock != null) {
-                        applyEffect(arrow, shooter, level)
-                    } else if (hitEntity != null) {
-                        applyEffect(hitEntity, shooter, level)
+                if (meta.owningPlugin == context) {
+                    val level = meta.value()
+                    if (level is Int && level > 0) {
+                        // This is a homing missile
+                        arrow.remove()
+                        // Get damage source
+                        val shooter: LivingEntity? = if (arrow.shooter is LivingEntity) {
+                            arrow.shooter as LivingEntity
+                        } else {
+                            null
+                        }
+                        // Get target
+                        val hitBlock = event.hitBlock
+                        val hitEntity = event.hitEntity
+                        // Apply effect
+                        if (hitBlock != null) {
+                            applyEffect(arrow, shooter, level)
+                        } else if (hitEntity != null) {
+                            applyEffect(hitEntity, shooter, level)
+                        }
                     }
                 }
             }

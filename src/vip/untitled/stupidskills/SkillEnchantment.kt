@@ -29,7 +29,7 @@ open class SkillEnchantment(key: NamespacedKey) : Enchantment(key) {
     }
 
     override fun getMaxLevel(): Int {
-        return 3
+        return 10
     }
 
     override fun getStartLevel(): Int {

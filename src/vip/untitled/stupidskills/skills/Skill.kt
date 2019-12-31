@@ -74,7 +74,7 @@ abstract class Skill constructor(val context: JavaPlugin, val enchantment: Skill
     open fun getItem(owner: Player, level: Int = 1): ItemStack {
         val sanitizedLevel = when {
             level < 1 -> 1
-            level > 3 -> 3
+            level > 10 -> 10
             else -> level
         }
         val item = ItemStack(Material.WRITTEN_BOOK)
@@ -91,8 +91,11 @@ abstract class Skill constructor(val context: JavaPlugin, val enchantment: Skill
 
     /**
      * Make an entity cast a skill, return true if should cancel PlayerInteractEvent
+     * @param caster Caster
+     * @param level Skill level
+     * @param event The PlayerInteractEvent event
      */
-    open fun cast(caster: Entity, level: Int): Boolean {
+    open fun cast(caster: Entity, level: Int, event: PlayerInteractEvent?): Boolean {
         return true
     }
 
@@ -103,7 +106,7 @@ abstract class Skill constructor(val context: JavaPlugin, val enchantment: Skill
     open fun onPlayerUse(event: PlayerInteractEvent) {
         val level = match(event.item, event.player)
         if (level > 0) {
-            if (cast(event.player, level)) {
+            if (cast(event.player, level, event)) {
                 event.isCancelled = true
             }
         }

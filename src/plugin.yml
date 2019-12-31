@@ -1,11 +1,14 @@
 name: StupidSkills
 main: vip.untitled.stupidskills.StupidSkills
-version: '1.1'
+version: '1.2'
 author: Untitled
 commands:
   skill:
     description: Make a player learn some skill
     usage: /skill <skill-name> <level> [player]
+  is-stupid:
+    description: Check if a player is currently stupid
+    usage: /is-stupid [player]
   list-skill:
     description: List all skills
     usage: /list-skill

@@ -2,10 +2,10 @@ package vip.untitled.stupidskills.effects
 
 import org.bukkit.entity.Damageable
 import org.bukkit.entity.Entity
-import org.bukkit.plugin.Plugin
+import org.bukkit.plugin.java.JavaPlugin
 
 open class FullAreaDamageEffect : AreaDamageEffect() {
-    override fun apply(entity: Entity, context: Plugin, level: Int) {
+    override fun apply(entity: Entity, context: JavaPlugin, level: Int) {
         apply(entity, entity, level)
     }
 
