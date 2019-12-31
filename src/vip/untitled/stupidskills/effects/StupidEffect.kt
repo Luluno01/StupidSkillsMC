@@ -2,13 +2,19 @@ package vip.untitled.stupidskills.effects
 
 import org.bukkit.ChatColor
 import org.bukkit.NamespacedKey
+import org.bukkit.attribute.Attribute
+import org.bukkit.attribute.AttributeModifier
 import org.bukkit.entity.Entity
+import org.bukkit.entity.EntityType
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
+import org.bukkit.event.entity.EntityDamageEvent
+import org.bukkit.event.entity.EntityDeathEvent
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
+import org.bukkit.event.vehicle.VehicleExitEvent
 import org.bukkit.metadata.MetadataValueAdapter
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.potion.PotionEffect
@@ -25,6 +31,9 @@ open class StupidEffect(protected val context: JavaPlugin, protected val key: Na
         const val minDuration = 20 * 60
         const val maxDuration = 20 * 90
         const val extraTicksPerLevel = (maxDuration - minDuration) / (maxLevel - 1.0)
+        const val minSpeedScaler = 1.1
+        const val maxSpeedScaler = 1.5
+        const val extraSpeedScalerPerLevel = (maxSpeedScaler - minSpeedScaler) / (maxLevel - 1.0)
         protected var instance: StupidEffect? = null
         fun getInstance(context: JavaPlugin? = null, key: NamespacedKey? = null): StupidEffect {
             if (instance == null) {
@@ -59,12 +68,21 @@ open class StupidEffect(protected val context: JavaPlugin, protected val key: Na
         }
     }
 
+    open class StupidPigMetadataValue(plugin: JavaPlugin) : MetadataValueAdapter(plugin) {
+        override fun value(): Boolean {
+            return true
+        }
+
+        override fun invalidate() {
+            return
+        }
+    }
+
     @Suppress("LeakingThis")
     open class ClearStupidityTask(
         val plugin: JavaPlugin,
         val effect: StupidEffect,
         val entity: LivingEntity,
-        private val metaKey: String,
         val duration: Long
     ) : BukkitRunnable() {
         open val targetTick =
@@ -85,8 +103,9 @@ open class StupidEffect(protected val context: JavaPlugin, protected val key: Na
 
         override fun run() {
             effect.clearStupidityTasks.remove(entity.uniqueId)
-            if (entity.isDead) return  // Dead for being stupid?
-            entity.removeMetadata(metaKey, plugin)
+//            if (entity.isDead) return  // Dead for being stupid?
+            effect.clearStupidMetadata(entity)
+            effect.removeStupidPigs(entity)
         }
 
         override fun cancel() {
@@ -121,6 +140,57 @@ open class StupidEffect(protected val context: JavaPlugin, protected val key: Na
         return null
     }
 
+    open fun setStupidPig(pig: Entity, level: Int) {
+        if (pig is LivingEntity && pig.type == EntityType.PIG) {
+            pig.setMetadata("$key-pig", StupidPigMetadataValue(context))
+            pig.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED)
+                ?.addModifier(
+                    AttributeModifier(
+                        "stupid pig",
+                        getLeveledValue(minSpeedScaler, extraSpeedScalerPerLevel, sanitizeLevel(level)),
+                        AttributeModifier.Operation.ADD_SCALAR
+                    )
+                )
+        }
+    }
+
+    protected open fun removeRiddenPigs(entity: Entity) {
+        val vehicle = entity.vehicle
+        if (vehicle != null && isStupidPig(vehicle)) {
+            removeRiddenPigs(vehicle)
+            vehicle.remove()
+        }
+    }
+
+    protected open fun removeRidingPigs(entity: Entity) {
+        for (passenger in entity.passengers) {
+            if (isStupidPig(passenger)) {
+                removeRidingPigs(passenger)
+                passenger.remove()
+            }
+        }
+    }
+
+    open fun removeStupidPigs(entity: Entity) {
+        removeRiddenPigs(entity)
+        removeRidingPigs(entity)
+    }
+
+    open fun setStupidPigs(pigs: List<Entity>, level: Int) {
+        for (pig in pigs) setStupidPig(pig, level)
+    }
+
+    open fun isStupidPig(pig: Entity): Boolean {
+        if (pig.type == EntityType.PIG) {
+            for (meta in pig.getMetadata("$key-pig")) {
+                if (meta.owningPlugin == context && meta is StupidPigMetadataValue) {
+                    return meta.value()  // This should be true
+                }
+            }
+        }
+        return false
+    }
+
     open fun clearStupidMetadata(entity: LivingEntity) {
         entity.removeMetadata(key.toString(), context)
     }
@@ -139,13 +209,25 @@ open class StupidEffect(protected val context: JavaPlugin, protected val key: Na
         } else {
             if (remainingTicks == null) {
                 context.logger.warning("[StupidEffect] Player ${player.displayName} has a stupid level $level, but no remaining tick, restarting timer")
-                ClearStupidityTask(context, this, player, key.toString(), getDuration(level).toLong())
+                applyCompositeEffect(player, level)
+                ClearStupidityTask(context, this, player, getDuration(level).toLong())
+
             } else {
                 context.logger.info("[StupidEffect] Player ${player.displayName} continues being stupid for $remainingTicks ticks")
                 clearRemainingStupidMetadata(player)
-                ClearStupidityTask(context, this, player, key.toString(), remainingTicks.toLong())
+                applyCompositeEffect(player, level)
+                ClearStupidityTask(context, this, player, remainingTicks.toLong())
             }
         }
+    }
+
+    @EventHandler
+    open fun onEntityDeath(event: EntityDeathEvent) {
+        // Cancel the timer and remove stupid metadata & pigs
+        val entity = event.entity
+        removeStupidPigs(entity)
+        clearStupidityTasks[entity.uniqueId]?.cancel()
+        clearStupidMetadata(entity)
     }
 
     @EventHandler
@@ -156,9 +238,22 @@ open class StupidEffect(protected val context: JavaPlugin, protected val key: Na
         if (task != null) {
             setRemainingStupidMetadata(player, task.remainingTicks.toInt())
             task.cancel()
-            clearStupidityTasks.remove(player.uniqueId)
-            context.logger.info("Saving remaining ticks for player ${player.displayName}")
+            removeStupidPigs(player)
+            context.logger.info("[StupidEffect] Saving remaining ticks for player ${player.displayName}")
         }
+    }
+
+    @EventHandler
+    open fun onVehicleExit(event: VehicleExitEvent) {
+        if (isStupidPig(event.vehicle) && getStupidity(event.exited) > 0) {
+            event.isCancelled = true
+        }
+    }
+
+    @EventHandler
+    open fun onEntityDamage(event: EntityDamageEvent) {
+        val entity = event.entity
+        if (isStupidPig(entity) && (entity.passengers.isNotEmpty() || entity.isInsideVehicle)) event.isCancelled = true
     }
 
     open fun getDuration(level: Int): Int {
@@ -170,17 +265,35 @@ open class StupidEffect(protected val context: JavaPlugin, protected val key: Na
         return meta?.value() ?: 0
     }
 
-    override fun apply(entity: Entity, context: JavaPlugin, level: Int) {
-        if (entity !is LivingEntity) return
-        val stupidity = getStupidity(entity)
-        if (stupidity > level) return  // Don not override higher level
+    open fun applyCompositeEffect(entity: Entity, level: Int) {
         val lvl = sanitizeLevel(level)
+        val pigs = RiddenByPigEffect().apply(entity, kotlin.math.ceil(lvl * 0.5).toInt())
+        pigs.addAll(RidePigEffect().apply(entity, pigName = entity.name))
+        setStupidPigs(pigs, lvl)
+    }
+
+    override fun apply(entity: Entity, context: JavaPlugin, level: Int) {
+        apply(entity, level)
+    }
+
+    /**
+     * Apply stupid effect on an entity
+     * @param entity Target entity
+     * @param level Stupid level
+     * @return Whether the effect is successfully applied
+     */
+    open fun apply(entity: Entity, level: Int): Boolean {
+        if (entity !is LivingEntity) return false
+        if (isStupidPig(entity)) return false
+        val stupidity = getStupidity(entity)
+        val lvl = sanitizeLevel(level)
+        if (stupidity > lvl) return false  // Don not override higher level
         val duration = getDuration(lvl)
         entity.addPotionEffect(
             PotionEffect(
                 PotionEffectType.GLOWING,
                 duration,
-                lvl,
+                1,
                 true,
                 true,
                 true
@@ -190,7 +303,7 @@ open class StupidEffect(protected val context: JavaPlugin, protected val key: Na
             PotionEffect(
                 PotionEffectType.SLOW,
                 duration,
-                lvl,
+                1,
                 true,
                 true,
                 true
@@ -200,14 +313,15 @@ open class StupidEffect(protected val context: JavaPlugin, protected val key: Na
             PotionEffect(
                 PotionEffectType.WEAKNESS,
                 duration,
-                lvl,
+                1,
                 true,
                 true,
                 true
             ), true
         )
+        if (stupidity == 0) applyCompositeEffect(entity, lvl)
         setStupidMetadata(entity, lvl)
-        ClearStupidityTask(context, this, entity, key.toString(), duration.toLong())
+        ClearStupidityTask(context, this, entity, duration.toLong())  // Start/Restart timer
         if (entity is Player) {
             when (stupidity) {
                 0 -> entity.chat("${ChatColor.GREEN}i am sTuPiD")  // Make sure this looks stupid
@@ -216,5 +330,6 @@ open class StupidEffect(protected val context: JavaPlugin, protected val key: Na
                 else -> entity.chat("${ChatColor.MAGIC}I AM THE KING OF STUPIDITY")  // You get it, right?
             }
         }
+        return true
     }
 }
