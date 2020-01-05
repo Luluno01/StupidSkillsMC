@@ -1,7 +1,7 @@
 <component name="libraryTable">
-  <library name="paper-31">
+  <library name="NametagEdit">
     <CLASSES>
-      <root url="jar://$PROJECT_DIR$/lib/paper-31.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/NametagEdit.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

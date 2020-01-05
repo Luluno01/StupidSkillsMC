@@ -2,13 +2,24 @@ name: StupidSkills
 main: vip.untitled.stupidskills.StupidSkills
 version: '1.2'
 author: Untitled
+softdepend:
+  - NametagEdit
 commands:
   skill:
     description: Make a player learn some skill
     usage: /skill <skill-name> <level> [player]
-  is-stupid:
-    description: Check if a player is currently stupid
-    usage: /is-stupid [player]
   list-skill:
     description: List all skills
     usage: /list-skill
+  is-stupid:
+    description: Check if a player is currently stupid
+    usage: /is-stupid [player]
+  stupidity:
+    description: Get (accumulated) stupidity of a player
+    usage: /stupidity [player]
+  clear-stupidity:
+    description: Clear (accumulated) stupidity of a player
+    usage: /clear-stupidity [player]
+  set-stupidity:
+    description: Assign (accumulated) stupidity to a player
+    usage: /set-stupidity <stupidity> [player]

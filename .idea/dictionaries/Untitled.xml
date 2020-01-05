@@ -4,6 +4,7 @@
       <w>cooldown</w>
       <w>cooldownable</w>
       <w>namespaced</w>
+      <w>pluggable</w>
     </words>
   </dictionary>
 </component>

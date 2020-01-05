@@ -138,7 +138,7 @@ open class HomingMissile constructor(context: JavaPlugin, enchantment: SkillEnch
         }
 
         override fun isTargetAlive(): Boolean {
-            return !target.isDead
+            return !target.isDead && target.world == arrow.world
         }
     }
 
@@ -193,7 +193,7 @@ open class HomingMissile constructor(context: JavaPlugin, enchantment: SkillEnch
     }
 
     protected open fun getMaxVelocity(level: Int): Double {
-        return 1 + 0.25 * level
+        return 1.2 + 0.125 * level
     }
 
     protected open fun checkCooldown(caster: LivingEntity, level: Int, item: ItemStack? = null): Boolean {

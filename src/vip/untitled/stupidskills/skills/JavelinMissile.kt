@@ -25,7 +25,7 @@ open class JavelinMissile constructor(context: JavaPlugin, enchantment: SkillEnc
         }
     }
 
-    protected open class TargetChangingTask(plugin: JavaPlugin, private val homingMissileTask: HomingMissileTask) :
+    protected open class NaiveTargetChangingTask(plugin: JavaPlugin, private val homingMissileTask: HomingMissileTask) :
         BukkitRunnable() {
         init {
             val arrow = homingMissileTask.arrow
@@ -39,11 +39,49 @@ open class JavelinMissile constructor(context: JavaPlugin, enchantment: SkillEnc
         }
     }
 
+    protected open class AssKickingTargetChangingTask(
+        plugin: JavaPlugin,
+        private val homingMissileTask: HomingMissileTask
+    ) :
+        BukkitRunnable() {
+        protected var gainEnoughAltitude = 0
+
+        init {
+            this.runTaskTimer(plugin, /* Equals to homing delay */ 5, /* Update overriding target every 2 ticks */ 1L)
+        }
+
+        override fun run() {
+            if (homingMissileTask.isCancelled) {
+                cancel()
+            } else {
+                val arrow = homingMissileTask.arrow
+                if (gainEnoughAltitude < 10) {
+                    // Gain some altitude
+                    homingMissileTask.targetOverride =
+                        arrow.velocity.clone().add(arrow.location.toVector()).add(Vector(0.0, 100.0, 0.0))
+                    gainEnoughAltitude += 2
+                    return
+                } else {
+                    // Then to the above
+                    val targetVector = arrow.location.toVector().add(homingMissileTask.getToTargetVector())
+                    val horizontalDistance = targetVector.clone().setY(0).distance(arrow.location.toVector().setY(0))
+                    if (horizontalDistance < 8) {
+                        // Close enough
+                        homingMissileTask.targetOverride = null
+                        cancel()
+                    } else {
+                        homingMissileTask.targetOverride = targetVector.clone().add(Vector(0.0, 50.0, 0.0))
+                    }
+                }
+            }
+        }
+    }
+
     override fun getHomingDelay(level: Int): Long {
         return 5
     }
 
     override fun onNewMissile(missile: Arrow, homingMissileTask: HomingMissileTask) {
-        TargetChangingTask(context, homingMissileTask)
+        AssKickingTargetChangingTask(context, homingMissileTask)
     }
 }

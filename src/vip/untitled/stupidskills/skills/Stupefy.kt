@@ -10,7 +10,7 @@ import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.java.JavaPlugin
 import vip.untitled.stupidskills.SkillEnchantment
-import vip.untitled.stupidskills.effects.StupidEffect
+import vip.untitled.stupidskills.effects.stupideffect.StupidEffect
 import vip.untitled.stupidskills.helpers.LookingAt
 import vip.untitled.stupidskills.helpers.SkillCooldown
 import vip.untitled.stupidskills.helpers.TickCounter
@@ -42,7 +42,7 @@ open class Stupefy constructor(context: JavaPlugin, enchantment: SkillEnchantmen
             val target = LookingAt.what(caster, 3, true)
             if (target != null && target is LivingEntity) {
                 val stupidEffect = StupidEffect.getInstance()
-                val stupidity = stupidEffect.getStupidity(target)
+                val stupidity = stupidEffect.stupidMetadataHandler.getStupidity(target)
                 val lvl = stupidEffect.sanitizeLevel(level)
                 if (stupidity > lvl) {
                     // Don not override higher level
@@ -51,7 +51,7 @@ open class Stupefy constructor(context: JavaPlugin, enchantment: SkillEnchantmen
                     }
                     return true
                 }
-                if (stupidEffect.isStupidPig(target)) return true
+                if (stupidEffect.stupidPigHandler.isStupidPig(target)) return true
                 if (stupefy(target, lvl)) {
                     if (caster is Player) {
                         caster.chat("Look at this stupid ${target.name}")

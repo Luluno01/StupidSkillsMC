@@ -8,18 +8,7 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
-    <orderEntry type="module-library" scope="PROVIDED">
-      <library>
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/paper-api-1.15-R0.1-20191217.041221-28.jar!/" />
-        </CLASSES>
-        <JAVADOC>
-          <root url="jar://$MODULE_DIR$/lib/paper-api-1.15-R0.1-20191217.041221-28-javadoc.jar!/" />
-        </JAVADOC>
-        <SOURCES>
-          <root url="jar://$MODULE_DIR$/lib/paper-api-1.15-R0.1-20191217.041221-28-sources.jar!/" />
-        </SOURCES>
-      </library>
-    </orderEntry>
+    <orderEntry type="library" name="paper-api-1.15-R0.1-20191217.041221-28" level="project" />
+    <orderEntry type="library" name="NametagEdit" level="project" />
   </component>
 </module>
