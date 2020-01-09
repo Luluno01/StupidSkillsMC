@@ -14,7 +14,7 @@ import java.lang.Integer.parseInt
 import java.math.BigInteger
 
 class StupidSkills : JavaPlugin(), TickCounter.Companion.TickCounterOwner {
-    private val skillClasses = arrayOf(WizardSkill, SteveCannon, HomingMissile, JavelinMissile, Stupefy)
+    private val skillClasses = arrayOf(WizardSkill, SteveCannon, HomingMissile, JavelinMissile, Stupefy, Piggy)
     private val skillEnchantmentKey = NamespacedKey(this, "skill")
     private val skillEnchantment = SkillEnchantment(skillEnchantmentKey)
 

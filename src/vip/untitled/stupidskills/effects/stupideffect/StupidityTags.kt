@@ -1,6 +1,7 @@
 package vip.untitled.stupidskills.effects.stupideffect
 
-import com.nametagedit.plugin.NametagEdit
+import me.neznamy.tab.api.EnumProperty
+import me.neznamy.tab.api.TABAPI
 import org.bukkit.ChatColor
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
@@ -91,14 +92,17 @@ open class StupidityTags(protected val context: JavaPlugin, protected val collec
     open fun setPlayerTag(player: Player, diedForBeingStupid: Boolean = false) {
         try {
             val tags = getTags(player)
-            NametagEdit.getApi().setNametag(
-                player,
-                tags[0],
-                if (diedForBeingStupid) " ${ChatColor.GOLD}[Died for Being Stupid]${ChatColor.RESET} " else tags[1]
-            )
+            val prefix = tags[0]
+            val suffix =
+                if (diedForBeingStupid) " ${ChatColor.GOLD}[Died for Being Stupid]${ChatColor.RESET}" else tags[1]
+//            TABAPI.setValuePermanently(player.uniqueId, EnumProperty.ABOVENAME, prefix)
+//            TABAPI.setValuePermanently(player.uniqueId, EnumProperty.BELOWNAME, suffix)
+            TABAPI.setValuePermanently(player.uniqueId, EnumProperty.TABPREFIX, prefix)
+            TABAPI.setValuePermanently(player.uniqueId, EnumProperty.TABSUFFIX, suffix)
+//            TABAPI.hideNametag(player.uniqueId)
         } catch (err: NoClassDefFoundError) {
             if (firstWarn) {
-                context.logger.warning("[StupidEffect] NametagEdit is required to enable stupid tags")
+                context.logger.warning("[StupidEffect] TAB is required to enable stupid tags")
                 firstWarn = false
             }
         }

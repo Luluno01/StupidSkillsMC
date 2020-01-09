@@ -3,7 +3,7 @@ main: vip.untitled.stupidskills.StupidSkills
 version: '1.2'
 author: Untitled
 softdepend:
-  - NametagEdit
+  - TAB
 commands:
   skill:
     description: Make a player learn some skill
