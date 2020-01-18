@@ -28,7 +28,7 @@ import java.util.*
 
 open class HomingMissile constructor(context: JavaPlugin, enchantment: SkillEnchantment) :
     Skill(context, enchantment) {
-    companion object : SkillCompanionObject<HomingMissile>(HomingMissile::class)
+    companion object : SkillCompanionObject<HomingMissile>(HomingMissile::class.java)
 
     override val name = "Homing Missile"
     override val internalName = "HomingMissile"

@@ -21,7 +21,7 @@ import java.util.*
 
 class SteveCannon constructor(context: JavaPlugin, enchantment: SkillEnchantment) :
     Skill(context, enchantment), Listener {
-    companion object : SkillCompanionObject<SteveCannon>(SteveCannon::class)
+    companion object : SkillCompanionObject<SteveCannon>(SteveCannon::class.java)
 
     override val name = "Steve Cannon"
     override val internalName = "SteveCannon"

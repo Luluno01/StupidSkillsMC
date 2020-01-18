@@ -17,7 +17,7 @@ import vip.untitled.stupidskills.helpers.TickCounter
 
 open class Stupefy constructor(context: JavaPlugin, enchantment: SkillEnchantment) :
     Skill(context, enchantment) {
-    companion object : SkillCompanionObject<Stupefy>(Stupefy::class)
+    companion object : SkillCompanionObject<Stupefy>(Stupefy::class.java)
 
     override val name = "Stupefy"
     override val internalName = "Stupefy"

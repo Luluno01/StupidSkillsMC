@@ -18,7 +18,7 @@ import vip.untitled.stupidskills.SkillEnchantment
  */
 @Suppress("LeakingThis")
 abstract class Skill constructor(val context: JavaPlugin, val enchantment: SkillEnchantment) : Listener {
-    companion object : SkillCompanionObject<Skill>(Skill::class) {
+    companion object : SkillCompanionObject<Skill>(Skill::class.java) {
         override fun getInstance(context: JavaPlugin, enchantment: SkillEnchantment): Skill {
             throw Error("Cannot instantiate base class of skill")
         }

@@ -6,7 +6,7 @@ import vip.untitled.stupidskills.SkillEnchantment
 
 class WizardSkill constructor(context: JavaPlugin, enchantment: SkillEnchantment) :
     Skill(context, enchantment) {
-    companion object : SkillCompanionObject<WizardSkill>(WizardSkill::class)
+    companion object : SkillCompanionObject<WizardSkill>(WizardSkill::class.java)
 
     override val name = "Wizard's Skill"
     override val internalName = "WizardSkill"

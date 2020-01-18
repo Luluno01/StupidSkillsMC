@@ -12,7 +12,7 @@ import vip.untitled.stupidskills.SkillEnchantment
 
 open class JavelinMissile constructor(context: JavaPlugin, enchantment: SkillEnchantment) :
     HomingMissile(context, enchantment) {
-    companion object : SkillCompanionObject<JavelinMissile>(JavelinMissile::class)
+    companion object : SkillCompanionObject<JavelinMissile>(JavelinMissile::class.java)
 
     override val name = "Javelin Missile"
     override val internalName = "JavelinMissile"

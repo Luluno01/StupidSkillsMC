@@ -14,7 +14,7 @@ import vip.untitled.stupidskills.effects.PigSoundEffect
 open class Piggy(
     context: JavaPlugin, enchantment: SkillEnchantment
 ) : Skill(context, enchantment) {
-    companion object : SkillCompanionObject<Piggy>(Piggy::class)
+    companion object : SkillCompanionObject<Piggy>(Piggy::class.java)
 
     override val name = "Piggy Piggy"
     override val internalName = "Piggy"
