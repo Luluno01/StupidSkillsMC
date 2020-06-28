@@ -30,7 +30,7 @@ open class StupidCompositePotionEffect(
                 true,
                 true,
                 true
-            ), true
+            )
         )
         entity.addPotionEffect(
             PotionEffect(
@@ -40,7 +40,7 @@ open class StupidCompositePotionEffect(
                 true,
                 true,
                 true
-            ), true
+            )
         )
         entity.addPotionEffect(
             PotionEffect(
@@ -50,7 +50,7 @@ open class StupidCompositePotionEffect(
                 true,
                 true,
                 true
-            ), true
+            )
         )
     }
 

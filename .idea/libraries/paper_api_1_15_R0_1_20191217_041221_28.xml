@@ -1,13 +1,14 @@
 <component name="libraryTable">
   <library name="paper-api-1.15-R0.1-20191217.041221-28">
     <CLASSES>
-      <root url="jar://$PROJECT_DIR$/lib/paper-api-1.15-R0.1-20191217.041221-28.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/paper-api-1.16.1-R0.1-20200628.113013-11.jar!/" />
     </CLASSES>
     <JAVADOC>
-      <root url="jar://$PROJECT_DIR$/lib/paper-api-1.15-R0.1-20191217.041221-28-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/paper-api-1.16.1-R0.1-20200628.113013-11-javadoc.jar!/" />
     </JAVADOC>
     <SOURCES>
-      <root url="jar://$PROJECT_DIR$/lib/paper-api-1.15-R0.1-20191217.041221-28-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/paper-api-1.16.1-R0.1-20200628.113013-11-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/paper-api-1.16.1-R0.1-20200628.113013-11-shaded.jar!/" />
     </SOURCES>
   </library>
 </component>
